@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 # Apps included by default that can be added to INSTALLED_APPS
 
 INSTALLED_APPS = [
+    'bbapp.apps.BbappConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
