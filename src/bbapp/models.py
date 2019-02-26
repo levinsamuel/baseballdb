@@ -1,7 +1,6 @@
 from django.db import models
 
 
-# Create your models here.
 class Master(models.Model):
 
     id = models.CharField(max_length=9, primary_key=True)
@@ -50,7 +49,7 @@ class Pitching(models.Model):
     player = models.ForeignKey(Master, on_delete=models.DO_NOTHING)
     yearID = models.IntegerField()
     stint = models.IntegerField()
-    teamID = models.IntegerField()
+    teamID = models.CharField(max_length=5)
     lgID = models.CharField(max_length=10)
     W = models.IntegerField()
     L = models.IntegerField()
@@ -74,7 +73,9 @@ class Pitching(models.Model):
     BFP = models.IntegerField()
     GF = models.IntegerField()
     R = models.IntegerField()
+    "Sacrifices by opposing batters"
     SH = models.IntegerField()
+    "Sacrifice flies"
     SF = models.IntegerField()
     GIDP = models.IntegerField()
 
