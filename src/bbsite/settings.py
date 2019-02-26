@@ -83,7 +83,10 @@ DATABASES = {
         'USER': 'carta',
         'PASSWORD': 'carta',
         'HOST': 'localhost',
-        'PORT': '5432'
+        'PORT': '5432',
+        'OPTIONS': {
+            'options': '-c search_path=bbapp'
+        }
     }
 }
 
@@ -93,20 +96,20 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': """django.contrib.auth.password_validation.
-UserAttributeSimilarityValidator""",
+        'NAME': ("django.contrib.auth.password_validation."
+                 "UserAttributeSimilarityValidator"),
     },
     {
-        'NAME': """django.contrib.auth.password_validation.
-MinimumLengthValidator""",
+        'NAME': ("django.contrib.auth.password_validation."
+                 "MinimumLengthValidator"),
     },
     {
-        'NAME': """django.contrib.auth.password_validation.
-CommonPasswordValidator""",
+        'NAME': ("django.contrib.auth.password_validation."
+                 "CommonPasswordValidator"),
     },
     {
-        'NAME': """django.contrib.auth.password_validation.
-NumericPasswordValidator""",
+        'NAME': ("django.contrib.auth.password_validation."
+                 "NumericPasswordValidator"),
     },
 ]
 
@@ -116,7 +119,7 @@ NumericPasswordValidator""",
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'PST'
+TIME_ZONE = 'US/Pacific'
 
 USE_I18N = True
 

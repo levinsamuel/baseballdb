@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class Master(models.Model):
+class Player(models.Model):
 
     id = models.CharField(max_length=9, primary_key=True)
     birthYear = models.IntegerField()
@@ -34,11 +34,28 @@ class Master(models.Model):
 
 class Batting(models.Model):
 
-    player = models.ForeignKey(Master, on_delete=models.DO_NOTHING)
+    player = models.ForeignKey(Player, on_delete=models.DO_NOTHING)
     yearID = models.IntegerField()
     stint = models.IntegerField()
     teamID = models.IntegerField()
     lgID = models.CharField(max_length=10)
+    G = models.IntegerField()
+    AB = models.IntegerField()
+    R = models.IntegerField()
+    H = models.IntegerField()
+    doubles = models.IntegerField()
+    triples = models.IntegerField()
+    HR = models.IntegerField()
+    RBI = models.IntegerField()
+    SB = models.IntegerField()
+    CS = models.IntegerField()
+    BB = models.IntegerField()
+    SO = models.IntegerField()
+    IBB = models.IntegerField()
+    HBP = models.IntegerField()
+    SH = models.IntegerField()
+    SF = models.IntegerField()
+    GIDP = models.IntegerField()
 
     def __str__(self):
         return f"Batting season:: player:{self.player} year:{self.yearID}"
@@ -46,7 +63,7 @@ class Batting(models.Model):
 
 class Pitching(models.Model):
 
-    player = models.ForeignKey(Master, on_delete=models.DO_NOTHING)
+    player = models.ForeignKey(Player, on_delete=models.DO_NOTHING)
     yearID = models.IntegerField()
     stint = models.IntegerField()
     teamID = models.CharField(max_length=5)
