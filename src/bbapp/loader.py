@@ -1,5 +1,18 @@
 from bbapp.models import Pitching, Player
 
+global_maps = {
+    'playerID': 'player_id'
+}
+
+pitching_maps = {
+    'IPouts': 'IPOuts'
+}
+
+batting_maps = {
+    '2B': 'doubles',
+    '3B': 'triples'
+}
+
 gr04 = 'greinza01,2004,1,KCA,AL,8,11,24,24,0,0,0,435,143,64,26,26,100,0.256,3.97,3,1,8,1,599,0,64,3,2,8'.split(',')
 pkeys = 'playerID,yearID,stint,teamID,lgID,W,L,G,GS,CG,SHO,SV,IPouts,H,ER,HR,BB,SO,BAOpp,ERA,IBB,WP,HBP,BK,BFP,GF,R,SH,SF,GIDP'.split(',')
 pkeys[0] = 'player_id'
