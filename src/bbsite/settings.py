@@ -85,7 +85,7 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '5432',
         'OPTIONS': {
-            'options': '-c search_path=bbapp'
+            'options': '-c search_path=bbapp,public'
         }
     }
 }
@@ -127,6 +127,7 @@ USE_L10N = True
 
 USE_TZ = True
 
+TEST_RUNNER = 'utils.testsuite.FastTestRunner'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/

@@ -1,3 +1,8 @@
-from django.test import TestCase
+from django.test import SimpleTestCase
+# import TestCase for integrated tests
 
-# Create your tests here.
+
+class PlayerTests(SimpleTestCase):
+
+    def test(self):
+        pass
