@@ -98,3 +98,37 @@ class Pitching(models.Model):
 
     def __str__(self):
         return f"Pitching season:: player:{self.player} year:{self.yearID}"
+
+
+class Fielding(models.Model):
+
+    player = models.ForeignKey(Player, on_delete=models.DO_NOTHING)
+    yearID = models.IntegerField(default=0)
+    stint = models.IntegerField(default=0)
+    teamID = models.CharField(max_length=5)
+    lgID = models.CharField(max_length=10)
+    Pos = models.CharField(max_length=5)
+    G = models.IntegerField(default=0)
+    GS = models.IntegerField(default=0)
+    InnOuts = models.IntegerField(default=0)
+    "Putouts"
+    PO = models.IntegerField(default=0)
+    "Assists"
+    A = models.IntegerField(default=0)
+    "Errors"
+    E = models.IntegerField(default=0)
+    "Double plays"
+    DP = models.IntegerField(default=0)
+    "Passed Balls"
+    PB = models.IntegerField(default=0, null=True, blank=True)
+    "Wild Pitches"
+    WP = models.IntegerField(default=0, null=True, blank=True)
+    "Stolen Bases"
+    SB = models.IntegerField(default=0, null=True, blank=True)
+    "Caught Stealing"
+    CS = models.IntegerField(default=0, null=True, blank=True)
+    "Zone Rating"
+    ZR = models.IntegerField(default=0, null=True, blank=True)
+
+    def __str__(self):
+        return f"Fielding season:: player:{self.player} year:{self.yearID}"
