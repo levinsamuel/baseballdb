@@ -20,7 +20,7 @@ class SimpleLoaderTest(SimpleTestCase):
 
         log.debug('load files from directory')
         # loader.log.setLevel(logging.DEBUG)
-        # log.setLevel(logging.DEBUG)
+        log.setLevel(logging.DEBUG)
         cur = pathlib.Path(__file__)
         types_with_files = loader.find_and_label_files(
             cur.parent / '../../../data/baseballdatabank-master'

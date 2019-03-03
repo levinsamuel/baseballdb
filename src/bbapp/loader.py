@@ -15,19 +15,25 @@ def _get_fields_for_type(t):
 
 
 global_maps = {
-    'playerID': 'player_id'
+    # 'playerID': 'player_id'
 }
 
 types_to_load = {
-    Player: [{}],
+    Player: [{
+        'playerID': 'id',
+    }],
     Batting: [{
         '2B': 'doubles',
-        '3B': 'triples'
+        '3B': 'triples',
+        'playerID': 'player_id',
     }],
     Pitching: [{
-        'IPouts': 'IPOuts'
+        'IPouts': 'IPOuts',
+        'playerID': 'player_id',
     }],
-    Fielding: [{}]
+    Fielding: [{
+        'playerID': 'player_id',
+    }]
 }
 
 for t in types_to_load.keys():
@@ -50,7 +56,7 @@ def find_and_label_files(root):
                 # existing model fields
                 log.debug('Reading file: %s', chld)
                 with open(chld, 'r') as f:
-                    header = f.readline()
+                    header = f.readline().strip()
                 log.debug('header: %s', header)
                 hfields = [(global_maps[h] if h in global_maps else h)
                            for h in header.split(',')]
@@ -58,39 +64,48 @@ def find_and_label_files(root):
                 for typ, maps in types_to_load.items():
                     # typ = model type, map = mapping from text header to model
                     # fields, fields = set of model fields
-                    log.debug('maps: %s', maps)
                     map, fields = maps
                     log.debug('checking type for match: %s', typ)
 
                     # map read header to field names in model
-                    hmapped = {(map[h] if h in map else h) for h in hfields}
+                    hmapped = [(map[h] if h in map else h) for h in hfields]
+                    headerset = set(hmapped)
                     # check how many fields are found in each type
-                    ints = hmapped & fields
+                    ints = headerset & fields
                     missing = (len(fields) - len(ints)) + \
-                              (len(hmapped) - len(ints))
+                              (len(headerset) - len(ints))
                     log.debug('''header for file %s is missing %d fields
                               for type %s''', chld.name, missing, typ)
 
                     try:
-                        typfile, prevmissing = ttll[typ][2]
+                        typfile, _, prevmissing = ttll[typ][2]
                         if prevmissing > missing:
                             log.debug('Better file match for type %s: %s',
                                       typ, chld.name)
-                            ttll[typ][2] = (chld, missing)
+                            ttll[typ][2] = (chld, hmapped, missing)
                     except IndexError:
-                        ttll[typ].append((chld, missing))
+                        ttll[typ].append((chld, hmapped, missing))
 
     return ttll
-
-
-def _find_and_label_files(root, q):
-
-    pt = Path(root)
 
 
 def to_map(keys, vals):
     return {k: (v if v != '' else None) for k, v in zip(keys, vals)}
 
 
+def load_from_type_map(type_map):
+
+    for typ, maps in type_map.items():
+        file, header, _ = maps[2]
+        with open(file, 'r') as reader:
+            # header
+            reader.readline()
+            for line in reader:
+                fmap = to_map(header, line.strip().split(','))
+                obj = typ(**fmap)
+                obj.save()
+
+
 def load_from_directory(root):
-    pt = Path(root)
+    ttll = find_and_label_files(root)
+    load_from_type_map(type_map)
