@@ -19,11 +19,15 @@ class SimpleLoaderTest(SimpleTestCase):
     def test_label_files(self):
 
         log.debug('load files from directory')
-        loader.log.setLevel(logging.DEBUG)
+        # loader.log.setLevel(logging.DEBUG)
+        # log.setLevel(logging.DEBUG)
         cur = pathlib.Path(__file__)
-        loader.find_and_label_files(
+        types_with_files = loader.find_and_label_files(
             cur.parent / '../../../data/baseballdatabank-master'
         )
+        log.debug('Labeled files: %s', types_with_files)
+        self.assertEqual('People.csv', types_with_files[Player][2][0].name)
+        self.assertEqual('Batting.csv', types_with_files[Batting][2][0].name)
 
     def test_get_model_fields(self):
 
