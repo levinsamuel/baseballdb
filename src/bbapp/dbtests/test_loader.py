@@ -1,6 +1,6 @@
 from django.test import TestCase
 from bbapp import loader
-from bbapp.models import Player, Pitching
+from bbapp.models import Player, Pitching, Batting
 from pathlib import Path
 import logging
 
@@ -26,12 +26,26 @@ class LoaderTest(TestCase):
                   'deathCity', 'nameFirst', 'nameLast', 'nameGiven',
                   'weight', 'height', 'bats', 'throws', 'debut',
                   'finalGame', 'retroID', 'bbrefID'], 0)
+            ],
+            Batting: [
+                {}, set(),
+                (Path(__file__).parent / 'sample_Batting.csv',
+                 ['player_id', 'yearID', 'stint', 'teamID', 'lgID', 'G', 'AB',
+                  'R', 'H', 'doubles', 'triples', 'HR', 'RBI', 'SB', 'CS',
+                  'BB', 'SO', 'IBB', 'HBP', 'SH', 'SF', 'GIDP'], 0)
             ]
         }
         loader.load_from_type_map(types_to_load)
         results = Player.objects.all()
         # File has 9 lines + header
         self.assertEqual(9, len(results))
+
+        aarons = Player.objects.filter(nameLast='Aaron',
+                                       nameFirst__startswith='H')
+        self.assertEqual(1, len(aarons))
+        aaron = aarons[0]
+        self.assertEqual(23, len(aaron.batting_set.all()),
+                         'Expected 23 batting seasons')
 
 # TODO: this is super borken!
     def _load_sample(self):

@@ -37,7 +37,7 @@ class Batting(models.Model):
     player = models.ForeignKey(Player, on_delete=models.DO_NOTHING)
     yearID = models.IntegerField(default=0)
     stint = models.IntegerField(default=0)
-    teamID = models.IntegerField(default=0)
+    teamID = models.CharField(max_length=5)
     lgID = models.CharField(max_length=10)
     G = models.IntegerField(default=0)
     AB = models.IntegerField(default=0)

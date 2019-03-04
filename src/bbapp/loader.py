@@ -90,7 +90,8 @@ def find_and_label_files(root):
 
 
 def to_map(keys, vals):
-    return {k: (v if v != '' else None) for k, v in zip(keys, vals)}
+    return {k: v for k, v in zip(keys, vals)
+            if v is not None and v != ''}
 
 
 def load_from_type_map(type_map):
