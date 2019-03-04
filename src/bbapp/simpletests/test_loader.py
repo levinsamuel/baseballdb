@@ -27,6 +27,8 @@ class SimpleLoaderTest(SimpleTestCase):
         )
         log.debug('Labeled files: %s', types_with_files)
         self.assertEqual('People.csv', types_with_files[Player][2][0].name)
+        self.assertIn('id', types_with_files[Player][2][1],
+                      'Expected player to use local map from playerID to id')
         self.assertEqual('Batting.csv', types_with_files[Batting][2][0].name)
 
     def test_get_model_fields(self):

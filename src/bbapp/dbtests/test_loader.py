@@ -1,6 +1,6 @@
 from django.test import TestCase
 from bbapp import loader
-from bbapp.models import Player, Pitching, Batting
+from bbapp.models import Player, Pitching, Batting, Fielding
 from pathlib import Path
 import logging
 
@@ -33,6 +33,13 @@ class LoaderTest(TestCase):
                  ['player_id', 'yearID', 'stint', 'teamID', 'lgID', 'G', 'AB',
                   'R', 'H', 'doubles', 'triples', 'HR', 'RBI', 'SB', 'CS',
                   'BB', 'SO', 'IBB', 'HBP', 'SH', 'SF', 'GIDP'], 0)
+            ],
+            Fielding: [
+                {}, set(),
+                (Path(__file__).parent / 'sample_Fielding.csv',
+                 ['player_id', 'yearID', 'stint', 'teamID', 'lgID', 'POS', 'G',
+                  'GS', 'InnOuts', 'PO', 'A', 'E', 'DP', 'PB', 'WP', 'SB',
+                  'CS', 'ZR'], 0)
             ]
         }
         loader.load_from_type_map(types_to_load)
@@ -40,10 +47,14 @@ class LoaderTest(TestCase):
         # File has 9 lines + header
         self.assertEqual(9, len(results))
 
+        # query for hank aaron
         aarons = Player.objects.filter(nameLast='Aaron',
                                        nameFirst__startswith='H')
+
+        # should only find one
         self.assertEqual(1, len(aarons))
         aaron = aarons[0]
+        # find all 23 batting seasons
         self.assertEqual(23, len(aaron.batting_set.all()),
                          'Expected 23 batting seasons')
 
