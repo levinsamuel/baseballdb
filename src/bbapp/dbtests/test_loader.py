@@ -15,10 +15,10 @@ class LoaderTest(TestCase):
         # log.setLevel(logging.DEBUG)
         # loader.log.setLevel(logging.DEBUG)
         # only select a subset of types
-
         to_load_with_file = loader.find_and_label_files(
             Path(__file__).parent, [Player, Batting, Fielding]
         )
+
         # load files
         loader.load_from_type_map(to_load_with_file)
 
@@ -37,6 +37,9 @@ class LoaderTest(TestCase):
         # find all 23 batting seasons
         self.assertEqual(23, len(aaron.batting_set.all()),
                          'Expected 23 batting seasons')
+        # all fielding seasons
+        self.assertEqual(36, len(aaron.fielding_set.all()),
+                         'Expected 36 fielding seasons')
 
 # TODO: this is super borken!
     def _load_sample(self):
