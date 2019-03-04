@@ -14,6 +14,24 @@ def _get_fields_for_type(t):
             for fn in t._meta.fields}
 
 
+class Mapping:
+
+    def __init__(self, typ, mapping):
+        self.typ = typ
+        self.mapping = mapping
+        self.fields = _get_fields_for_type(typ)
+        self.file = None
+        self.missing = None
+        self.headerList = None
+
+    def __repr__(self):
+        return f'mapping for type: {self.typ}'
+
+    def copy(self):
+        cop = Mapping(self.typ, {**self.mapping})
+        return cop
+
+
 # Global maps are overridden by type-specific maps
 global_maps = {
     'playerID': 'player_id'
@@ -30,24 +48,21 @@ global_maps = {
 #         item_2: the number of missing fields
 #     ]
 # ]
-types_to_load = {
-    Player: [{
+all_types = [
+    Mapping(Player, {
         'playerID': 'id',
-    }],
-    Batting: [{
+    }),
+    Mapping(Batting, {
         '2B': 'doubles',
         '3B': 'triples',
-    }],
-    Pitching: [{
+    }),
+    Mapping(Pitching, {
         'IPouts': 'IPOuts',
-    }],
-    Fielding: [{
+    }),
+    Mapping(Fielding, {
         'POS': 'Pos'
-    }]
-}
-
-for t in types_to_load.keys():
-    types_to_load[t].append(_get_fields_for_type(t))
+    })
+]
 
 
 def map_header_fields(f, local_map):
@@ -59,10 +74,22 @@ def map_header_fields(f, local_map):
         return f
 
 
-def find_and_label_files(root, depth=4):
+def find_and_label_files(root, to_load_input=all_types, depth=4,
+                         allowed_suffixes=['txt', 'csv', 'dat']):
     """Given a root directory, search all subdirectories for files matching the
     model classes based on their headers"""
-    ttll = {t: list(vals) for t, vals in types_to_load.items()}
+    if to_load_input is None or len(to_load_input) == 0:
+        return None
+    elif isinstance(to_load_input[0], Mapping):
+        to_load = [m.copy() for m in to_load_input]
+    elif isinstance(to_load_input[0], type):
+        to_load = [m.copy() for m in all_types if m.typ in to_load_input]
+    else:
+        raise TypeError(f'Not sure what to do with this: {to_load_input}')
+
+    _allowedsfx = set([('.' + sfx if not sfx.startswith('.') else sfx)
+                       for sfx in allowed_suffixes])
+
     # BFS through root dir
     pt = Path(root)
     fileq = deque([(pt, 0)])
@@ -71,29 +98,28 @@ def find_and_label_files(root, depth=4):
         for chld in cur.iterdir():
             if chld.is_dir() and lvl < depth:
                 fileq.append((chld, lvl + 1))
-            elif chld.is_file():
+            elif chld.is_file() and\
+                    (len(_allowedsfx) == 0 or chld.suffix in _allowedsfx):
 
+                log.debug('reading candidate file: %s', chld)
                 # If a file, read the header and check for a match with
                 # existing model fields
-                comps = map_header_to_model(chld)
+                comps = _map_header_to_model(chld, to_load)
 
                 # Check if the current file is a better match for the known
                 # types
-                for typ in types_to_load:
-                    hmapped, missing = comps[typ]
-                    try:
-                        prevmissing = ttll[typ][2][2]
-                        if prevmissing > missing:
-                            log.debug('Better file match for type %s: %s',
-                                      typ, chld.name)
-                            ttll[typ][2] = (chld, hmapped, missing)
-                    except IndexError:
-                        ttll[typ].append((chld, hmapped, missing))
+                for mapng in to_load:
+                    hmapped, missing = comps[mapng.typ]
+                    if mapng.missing is None or mapng.missing > missing:
+                        log.debug('Better file match for type %s: %s',
+                                  mapng, chld.name)
+                        mapng.file, mapng.headerList, mapng.missing =\
+                            (chld, hmapped, missing)
 
-    return ttll
+    return to_load
 
 
-def map_header_to_model(data_file):
+def _map_header_to_model(data_file, to_load):
 
     log.debug('Reading file: %s', data_file)
     with open(data_file, 'r') as f:
@@ -102,10 +128,10 @@ def map_header_to_model(data_file):
     hfields = header.split(',')
 
     choice = {}
-    for typ, maps in types_to_load.items():
+    for maps in to_load:
         # typ = model type, map = mapping from text header to model
         # fields, fields = set of model fields
-        map, fields = maps
+        typ, map, fields = maps.typ, maps.mapping, maps.fields
         log.debug('checking type for match: %s', typ)
 
         # map read header to field names in model
@@ -134,19 +160,20 @@ def to_map(keys, vals):
 def load_from_type_map(type_map):
     """Given a map containing the model fields and some associated data,
     including the file to load, load the files"""
-    for typ, maps in type_map.items():
-        file, header, _ = maps[2]
+    for maps in type_map:
+        file, header = maps.file, maps.headerList
         with open(file, 'r') as reader:
             # header
             reader.readline()
             for line in reader:
                 fmap = to_map(header, line.strip().split(','))
-                obj = typ(**fmap)
+                obj = maps.typ(**fmap)
                 obj.save()
 
 
 def load_from_directory(root, depth=4):
+
     """Find the files in a given root directory which correspond to the
     expected model fields, and then load those files into the DB"""
-    ttll = find_and_label_files(root, depth)
-    load_from_type_map(type_map)
+    ttll = find_and_label_files(all_types, root, depth)
+    load_from_type_map(ttll)

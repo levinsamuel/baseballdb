@@ -12,37 +12,17 @@ class LoaderTest(TestCase):
 
     def test_loader(self):
 
-        log.setLevel(logging.DEBUG)
-        types_to_load = {
-            # Load player
-            Player: [
-                # No maps or fields defined, since we're skipping that step
-                {}, set(),
-                # Define the path to the file and the header fields
-                (Path(__file__).parent / 'sample_People.csv',
-                 ['id', 'birthYear', 'birthMonth', 'birthDay',
-                  'birthCountry', 'birthState', 'birthCity', 'deathYear',
-                  'deathMonth', 'deathDay', 'deathCountry', 'deathState',
-                  'deathCity', 'nameFirst', 'nameLast', 'nameGiven',
-                  'weight', 'height', 'bats', 'throws', 'debut',
-                  'finalGame', 'retroID', 'bbrefID'], 0)
-            ],
-            Batting: [
-                {}, set(),
-                (Path(__file__).parent / 'sample_Batting.csv',
-                 ['player_id', 'yearID', 'stint', 'teamID', 'lgID', 'G', 'AB',
-                  'R', 'H', 'doubles', 'triples', 'HR', 'RBI', 'SB', 'CS',
-                  'BB', 'SO', 'IBB', 'HBP', 'SH', 'SF', 'GIDP'], 0)
-            ],
-            Fielding: [
-                {}, set(),
-                (Path(__file__).parent / 'sample_Fielding.csv',
-                 ['player_id', 'yearID', 'stint', 'teamID', 'lgID', 'POS', 'G',
-                  'GS', 'InnOuts', 'PO', 'A', 'E', 'DP', 'PB', 'WP', 'SB',
-                  'CS', 'ZR'], 0)
-            ]
-        }
-        loader.load_from_type_map(types_to_load)
+        # log.setLevel(logging.DEBUG)
+        # loader.log.setLevel(logging.DEBUG)
+        # only select a subset of types
+
+        to_load_with_file = loader.find_and_label_files(
+            Path(__file__).parent, [Player, Batting, Fielding]
+        )
+        # load files
+        loader.load_from_type_map(to_load_with_file)
+
+        # query tests
         results = Player.objects.all()
         # File has 9 lines + header
         self.assertEqual(9, len(results))

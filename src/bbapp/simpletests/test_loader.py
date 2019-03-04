@@ -20,16 +20,27 @@ class SimpleLoaderTest(SimpleTestCase):
 
         log.debug('load files from directory')
         # loader.log.setLevel(logging.DEBUG)
-        log.setLevel(logging.DEBUG)
+        # log.setLevel(logging.DEBUG)
+
         cur = pathlib.Path(__file__)
         types_with_files = loader.find_and_label_files(
             cur.parent / '../../../data/baseballdatabank-master'
         )
         log.debug('Labeled files: %s', types_with_files)
-        self.assertEqual('People.csv', types_with_files[Player][2][0].name)
-        self.assertIn('id', types_with_files[Player][2][1],
+
+        playermap = filter(lambda m: m.typ == Player, types_with_files)\
+            .__next__()
+        self.assertEqual(
+            'People.csv', playermap.file.name
+        )
+        self.assertIn('id', playermap.headerList,
                       'Expected player to use local map from playerID to id')
-        self.assertEqual('Batting.csv', types_with_files[Batting][2][0].name)
+
+        battingmap = filter(lambda m: m.typ == Batting, types_with_files)\
+            .__next__()
+        self.assertEqual(
+            'Batting.csv', battingmap.file.name
+        )
 
     def test_get_model_fields(self):
 
@@ -53,6 +64,6 @@ class SimpleLoaderTest(SimpleTestCase):
         self.assertIn('id', batting_fields,
                       'Expected field to be in batting field list')
 
-    def test_field_mapping(self):
-        # log.setLevel(logging.DEBUG)
-        log.debug('%s', loader.types_to_load)
+    # def test_field_mapping(self):
+    #     # log.setLevel(logging.DEBUG)
+    #
