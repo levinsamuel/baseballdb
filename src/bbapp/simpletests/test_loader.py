@@ -44,7 +44,9 @@ class SimpleLoaderTest(SimpleTestCase):
 
     def test_get_model_fields(self):
 
-        player_fields = loader._get_fields_for_type(Player)
+        player_map = filter(lambda m: m.typ == Player, loader.all_types)\
+            .__next__()
+        player_fields = player_map.fields
         log.debug('player fields: %s', player_fields)
 
         self.assertIn('id', player_fields,
@@ -57,7 +59,9 @@ class SimpleLoaderTest(SimpleTestCase):
                          'Unexpected field in player field list')
 
         # Test batting key
-        batting_fields = loader._get_fields_for_type(Batting)
+        batting_map = filter(lambda m: m.typ == Batting, loader.all_types)\
+            .__next__()
+        batting_fields = batting_map.fields
         log.debug('batting fields: %s', batting_fields)
         self.assertIn('player_id', batting_fields,
                       'Expected field to be in batting field list')
