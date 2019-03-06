@@ -1,5 +1,5 @@
 from django.test import TestCase
-from bbapp import loader
+from bbapp.loader import Load
 from bbapp.models import Player, Pitching, Batting, Fielding
 from pathlib import Path
 import logging
@@ -15,12 +15,10 @@ class LoaderTest(TestCase):
         # log.setLevel(logging.DEBUG)
         # loader.log.setLevel(logging.DEBUG)
         # only select a subset of types
-        to_load_with_file = loader.find_and_label_files(
-            Path(__file__).parent, [Player, Batting, Fielding]
-        )
+        load = Load.from_type_list([Player, Batting, Fielding])
 
         # load files
-        loader.load_from_type_map(to_load_with_file)
+        load.load_from_directory(Path(__file__).parent)
 
         # query tests
         results = Player.objects.all()
