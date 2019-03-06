@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 from django.db.models.fields import Field
-from bbapp import loader
+from bbapp.loader import Load, Mapping, log as loaderlog
 from bbapp.models import Player, Batting
 import logging
 import inspect
@@ -14,7 +14,7 @@ class SimpleLoaderTest(SimpleTestCase):
 
     def setUp(self):
         log.setLevel(logging.INFO)
-        loader.log.setLevel(logging.INFO)
+        loaderlog.setLevel(logging.INFO)
 
     def test_label_files(self):
 
@@ -23,12 +23,14 @@ class SimpleLoaderTest(SimpleTestCase):
         # log.setLevel(logging.DEBUG)
 
         cur = pathlib.Path(__file__)
-        types_with_files = loader.find_and_label_files(
+
+        load = Load()
+        load.find_and_label_files(
             cur.parent / '../../../data/baseballdatabank-master'
         )
-        log.debug('Labeled files: %s', types_with_files)
+        log.debug('Labeled files: %s', load)
 
-        playermap = filter(lambda m: m.typ == Player, types_with_files)\
+        playermap = filter(lambda m: m.typ == Player, load.mappings)\
             .__next__()
         self.assertEqual(
             'People.csv', playermap.file.name
@@ -36,7 +38,7 @@ class SimpleLoaderTest(SimpleTestCase):
         self.assertIn('id', playermap.headerList,
                       'Expected player to use local map from playerID to id')
 
-        battingmap = filter(lambda m: m.typ == Batting, types_with_files)\
+        battingmap = filter(lambda m: m.typ == Batting, load.mappings)\
             .__next__()
         self.assertEqual(
             'Batting.csv', battingmap.file.name
@@ -44,7 +46,8 @@ class SimpleLoaderTest(SimpleTestCase):
 
     def test_get_model_fields(self):
 
-        player_map = filter(lambda m: m.typ == Player, loader.all_types)\
+        load = Load()
+        player_map = filter(lambda m: m.typ == Player, load.mappings)\
             .__next__()
         player_fields = player_map.fields
         log.debug('player fields: %s', player_fields)
@@ -59,7 +62,7 @@ class SimpleLoaderTest(SimpleTestCase):
                          'Unexpected field in player field list')
 
         # Test batting key
-        batting_map = filter(lambda m: m.typ == Batting, loader.all_types)\
+        batting_map = filter(lambda m: m.typ == Batting, load.mappings)\
             .__next__()
         batting_fields = batting_map.fields
         log.debug('batting fields: %s', batting_fields)

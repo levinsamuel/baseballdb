@@ -7,12 +7,34 @@ import logging
 log = logging.getLogger('model_loader')
 log.setLevel(logging.INFO)
 
+# Global maps are overridden by type-specific maps
+global_maps = {
+    'playerID': 'player_id'
+}
+
 
 class Mapping:
+    """Mapping from type to its header fields and data file. Throws a KeyError
+    on an invalid type"""
+    field_mappings = {
+        Player: {
+            'playerID': 'id',
+        },
+        Batting: {
+            '2B': 'doubles',
+            '3B': 'triples',
+        },
+        Pitching: {
+            'IPouts': 'IPOuts',
+        },
+        Fielding: {
+            'POS': 'Pos'
+        },
+    }
 
-    def __init__(self, typ, mapping):
+    def __init__(self, typ):
         self.typ = typ
-        self.mapping = mapping
+        self.mapping = Mapping.field_mappings[typ]
         self.fields = \
             {(fn.name + '_id' if isinstance(fn, ForeignKey) else fn.name)
              for fn in typ._meta.fields}
@@ -23,112 +45,80 @@ class Mapping:
     def __repr__(self):
         return f'mapping for type: {self.typ}'
 
-    def copy(self):
-        cop = Mapping(self.typ, {**self.mapping})
-        return cop
+    def update_file_mapping(self, chld, hmapped, missing):
+        self.file, self.headerList, self.missing =\
+            chld, hmapped, missing
 
 
-# Global maps are overridden by type-specific maps
-global_maps = {
-    'playerID': 'player_id'
-}
+class Load:
+    """An instance of a load, to track where it left off and stuff"""
+    def __init__(self, mappings=None, *args, **kwargs):
 
-# The types to load:
-# key: type
-# value: list about the type mapping and file: [
-#     item_0: map from header field to model field,
-#     item_1: list of model fields, as read from the file,
-#     item_2: tuple containing info about the matched file: [
-#         item_0: the file that goes with this model,
-#         item_1: the order of model fields in this file,
-#         item_2: the number of missing fields
-#     ]
-# ]
-all_types = [
-    Mapping(Player, {
-        'playerID': 'id',
-    }),
-    Mapping(Batting, {
-        '2B': 'doubles',
-        '3B': 'triples',
-    }),
-    Mapping(Pitching, {
-        'IPouts': 'IPOuts',
-    }),
-    Mapping(Fielding, {
-        'POS': 'Pos'
-    })
-]
+        super(Load, self).__init__(*args, **kwargs)
+        if mappings is not None:
+            self.mappings = mappings
+        else:
+            self.mappings = [Mapping(t) for t in Mapping.field_mappings.keys()]
 
+    @staticmethod
+    def from_type_list(type_list):
+        return Load([Mapping(t) for t in type_list])
 
-def find_and_label_files(root, to_load_input=all_types, depth=4,
-                         allowed_suffixes=['txt', 'csv', 'dat']):
-    """Given a root directory, search all subdirectories for files matching the
-    model classes based on their headers"""
-    if to_load_input is None or len(to_load_input) == 0:
-        return None
-    elif isinstance(to_load_input[0], Mapping):
-        to_load = [m.copy() for m in to_load_input]
-    elif isinstance(to_load_input[0], type):
-        to_load = [m.copy() for m in all_types if m.typ in to_load_input]
-    else:
-        raise TypeError(f'Not sure what to do with this: {to_load_input}')
+    def find_and_label_files(self, root, depth=4,
+                             allowed_suffixes=['txt', 'csv', 'dat']):
+        """Given a root directory, search all subdirectories for files
+        matching the model classes based on their headers"""
 
-    _allowedsfx = set(('.' + sfx if not sfx.startswith('.') else sfx)
-                      for sfx in allowed_suffixes)
+        _allowedsfx = {('.' + sfx if not sfx.startswith('.') else sfx)
+                       for sfx in allowed_suffixes}
 
-    # BFS through root dir
-    fileq = deque([(Path(root), 0)])
-    while len(fileq) > 0:
-        cur, lvl = fileq.popleft()
-        for chld in cur.iterdir():
-            if chld.is_dir() and lvl < depth:
-                fileq.append((chld, lvl + 1))
-            elif chld.is_file() and\
-                    (len(_allowedsfx) == 0 or chld.suffix in _allowedsfx):
+        # BFS through root dir
+        fileq = deque([(Path(root), 0)])
+        while len(fileq) > 0:
+            cur, lvl = fileq.popleft()
+            for chld in cur.iterdir():
+                if chld.is_dir() and lvl < depth:
+                    fileq.append((chld, lvl + 1))
+                elif chld.is_file() and\
+                        (len(_allowedsfx) == 0 or chld.suffix in _allowedsfx):
 
-                log.debug('reading candidate file: %s', chld)
-                # If a file, read the header and check for a match with
-                # existing model fields
-                comps = _map_header_to_model(chld, to_load)
+                    log.debug('reading candidate file: %s', chld)
+                    # If a file, read the header and check for a match with
+                    # existing model fields
+                    comps = _map_header_to_model(chld, self.mappings)
 
-                # Check if the current file is a better match for the known
-                # types
-                for mapng in to_load:
-                    hmapped, missing = comps[mapng.typ]
-                    if mapng.missing is None or mapng.missing > missing:
-                        log.debug('Better file match for type %s: %s',
-                                  mapng, chld.name)
-                        mapng.file, mapng.headerList, mapng.missing =\
-                            (chld, hmapped, missing)
+                    # Check if the current file is a better match for the known
+                    # types
+                    for map in self.mappings:
+                        hmapped, missing = comps[map.typ]
+                        if map.missing is None or map.missing > missing:
+                            log.debug('Better file match for type %s: %s',
+                                      map, chld.name)
+                            map.update_file_mapping(chld, hmapped, missing)
 
-    return to_load
+    def load_from_type_map(self):
+        """Given a map containing the model fields and some associated data,
+        including the file to load, load the files"""
+        for maps in self.mappings:
+            file, header = maps.file, maps.headerList
+            with open(file, 'r') as reader:
+                # header
+                reader.readline()
+                for line in reader:
+                    fmap = _to_map(header, line.strip().split(','))
+                    obj = maps.typ(**fmap)
+                    obj.save()
+
+    def load_from_directory(self, root, depth=4):
+        """Find the files in a given root directory which correspond to the
+        expected model fields, and then load those files into the DB"""
+        self.find_and_label_files(root, depth)
+        self.load_from_type_map()
 
 
-def load_from_type_map(mapping_list):
-    """Given a map containing the model fields and some associated data,
-    including the file to load, load the files"""
-    for maps in mapping_list:
-        file, header = maps.file, maps.headerList
-        with open(file, 'r') as reader:
-            # header
-            reader.readline()
-            for line in reader:
-                fmap = _to_map(header, line.strip().split(','))
-                obj = maps.typ(**fmap)
-                obj.save()
-
-
-def load_from_directory(root, depth=4, types_to_load=all_types):
-
-    """Find the files in a given root directory which correspond to the
-    expected model fields, and then load those files into the DB"""
-    ttll = find_and_label_files(root, types_to_load, depth)
-    load_from_type_map(ttll)
-
-
-def _map_header_to_model(data_file, to_load):
-
+def _map_header_to_model(data_file, mappings):
+    """Read file header and compare it to each expected model type to find
+    the best fit"""
     log.debug('Reading file: %s', data_file)
     with open(data_file, 'r') as f:
         header = f.readline().strip()
@@ -136,7 +126,7 @@ def _map_header_to_model(data_file, to_load):
     hfields = header.split(',')
 
     choice = {}
-    for maps in to_load:
+    for maps in mappings:
         # typ = model type, map = mapping from text header to model
         # fields, fields = set of model fields
         typ, map, fields = maps.typ, maps.mapping, maps.fields
@@ -159,7 +149,7 @@ def _map_header_to_model(data_file, to_load):
 
 
 def _map_header_fields(f, local_map):
-    if f in local_map:
+    if local_map is not None and f in local_map:
         return local_map[f]
     elif f in global_maps:
         return global_maps[f]
