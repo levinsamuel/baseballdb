@@ -123,7 +123,7 @@ def load_from_directory(root, depth=4, types_to_load=all_types):
 
     """Find the files in a given root directory which correspond to the
     expected model fields, and then load those files into the DB"""
-    ttll = find_and_label_files(types_to_load, root, depth)
+    ttll = find_and_label_files(root, types_to_load, depth)
     load_from_type_map(ttll)
 
 
