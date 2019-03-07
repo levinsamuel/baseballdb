@@ -60,6 +60,9 @@ class Load:
         else:
             self.mappings = [Mapping(t) for t in Mapping.field_mappings.keys()]
 
+        self.current_map = mappings[0]
+        self.current_line = 0
+
     @staticmethod
     def from_type_list(type_list):
         return Load([Mapping(t) for t in type_list])
@@ -69,34 +72,24 @@ class Load:
         """Given a root directory, search all subdirectories for files
         matching the model classes based on their headers"""
 
-        _allowedsfx = {('.' + sfx if not sfx.startswith('.') else sfx)
-                       for sfx in allowed_suffixes}
+        # Function to perform on each file in root dir
+        def update_maps(each_file):
+            log.debug('reading candidate file: %s', each_file)
+            # If a file, read the header and check for a match with
+            # existing model fields
+            comps = _map_header_to_model(each_file, self.mappings)
 
-        # BFS through root dir
-        fileq = deque([(Path(root), 0)])
-        while len(fileq) > 0:
-            cur, lvl = fileq.popleft()
-            for chld in cur.iterdir():
-                if chld.is_dir() and lvl < depth:
-                    fileq.append((chld, lvl + 1))
-                elif chld.is_file() and\
-                        (len(_allowedsfx) == 0 or chld.suffix in _allowedsfx):
+            # Check if the current file is a better match for the known types
+            for map in self.mappings:
+                hmapped, missing = comps[map.typ]
+                if map.missing is None or map.missing > missing:
+                    log.debug('Better file match for type %s: %s',
+                              map, each_file.name)
+                    map.update_file_mapping(each_file, hmapped, missing)
 
-                    log.debug('reading candidate file: %s', chld)
-                    # If a file, read the header and check for a match with
-                    # existing model fields
-                    comps = _map_header_to_model(chld, self.mappings)
+        _bfs(root, update_maps, allowed_suffixes=allowed_suffixes, depth=depth)
 
-                    # Check if the current file is a better match for the known
-                    # types
-                    for map in self.mappings:
-                        hmapped, missing = comps[map.typ]
-                        if map.missing is None or map.missing > missing:
-                            log.debug('Better file match for type %s: %s',
-                                      map, chld.name)
-                            map.update_file_mapping(chld, hmapped, missing)
-
-    def load_from_type_map(self):
+    def load_from_mappings(self):
         """Given a map containing the model fields and some associated data,
         including the file to load, load the files"""
         for maps in self.mappings:
@@ -113,12 +106,16 @@ class Load:
         """Find the files in a given root directory which correspond to the
         expected model fields, and then load those files into the DB"""
         self.find_and_label_files(root, depth)
-        self.load_from_type_map()
+        self.load_from_mappings()
+
+    def write_progress():
+        pass
 
 
 def _map_header_to_model(data_file, mappings):
     """Read file header and compare it to each expected model type to find
-    the best fit"""
+    the best fit. Return a map from the type to the header of the file,
+    mapped to that type, and the number of missing fields for that file."""
     log.debug('Reading file: %s', data_file)
     with open(data_file, 'r') as f:
         header = f.readline().strip()
@@ -162,3 +159,23 @@ def _to_map(keys, vals):
     to be in the order read from the input file"""
     return {k: v for k, v in zip(keys, vals)
             if v is not None and v != ''}
+
+
+def _bfs(root, fileexec, allowed_suffixes=[], depth=4):
+    """Breadth-first search through a directory and execute the passed function
+    on each file matching the criteria"""
+    _allowedsfx = {('.' + sfx if not sfx.startswith('.') else sfx)
+                   for sfx in allowed_suffixes}
+
+    # BFS through root dir
+    fileq = deque([(Path(root), 0)])
+    while len(fileq) > 0:
+        cur, lvl = fileq.popleft()
+        for chld in cur.iterdir():
+            if chld.is_dir() and lvl < depth:
+                fileq.append((chld, lvl + 1))
+            elif chld.is_file() and\
+                    (len(_allowedsfx) == 0 or chld.suffix in _allowedsfx):
+
+                # Pass function to execute on each file
+                fileexec(chld)
