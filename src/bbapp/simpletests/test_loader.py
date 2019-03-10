@@ -70,7 +70,3 @@ class SimpleLoaderTest(SimpleTestCase):
                       'Expected field to be in batting field list')
         self.assertIn('id', batting_fields,
                       'Expected field to be in batting field list')
-
-    # def test_field_mapping(self):
-    #     # log.setLevel(logging.DEBUG)
-    #

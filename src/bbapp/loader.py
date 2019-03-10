@@ -5,7 +5,6 @@ from collections import deque
 import logging
 
 log = logging.getLogger('model_loader')
-log.setLevel(logging.INFO)
 
 # Global maps are overridden by type-specific maps
 global_maps = {
@@ -94,10 +93,12 @@ class Load:
         including the file to load, load the files"""
         for maps in self.mappings:
             file, header = maps.file, maps.headerList
-
+            log.info('loading type %s from file: %s', maps.typ.__name__,
+                     file)
             with open(file, 'r') as reader:
                 # header
                 reader.readline()
+                created = 0
                 while True:
                     batch = _read_batch(reader, batch_size)
                     if batch:
@@ -106,14 +107,17 @@ class Load:
                                 **_to_map(header, line.strip().split(','))
                              ) for line in batch]
                         maps.typ.objects.bulk_create(mapped)
+                        created += len(batch)
+                        log.info('Created %d %s records', created,
+                                 maps.typ.__name__)
                     if len(batch) < batch_size:
                         break
 
-    def load_from_directory(self, root, depth=4):
+    def load_from_directory(self, root, depth=4, batch_size=1000):
         """Find the files in a given root directory which correspond to the
         expected model fields, and then load those files into the DB"""
         self.find_and_label_files(root, depth)
-        self.load_from_mappings()
+        self.load_from_mappings(batch_size)
 
     def write_progress():
         pass
@@ -121,7 +125,10 @@ class Load:
 
 def _read_batch(handle, batch_size):
     "Read lines into a deque"
-    batch = deque([line for line, _ in zip(handle, range(batch_size))])
+    # handle has to come second, or else the generator will try to read
+    # an extra line before it find that range has run out, and will lose
+    # a line
+    batch = deque([line for _, line in zip(range(batch_size), handle)])
     return batch
 
 
