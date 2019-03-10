@@ -60,7 +60,7 @@ class Load:
         else:
             self.mappings = [Mapping(t) for t in Mapping.field_mappings.keys()]
 
-        self.current_map = mappings[0]
+        self.current_map = self.mappings[0]
         self.current_line = 0
 
     @staticmethod
@@ -77,11 +77,11 @@ class Load:
             log.debug('reading candidate file: %s', each_file)
             # If a file, read the header and check for a match with
             # existing model fields
-            comps = _map_header_to_model(each_file, self.mappings)
+            header_maps = _map_header_to_model(each_file, self.mappings)
 
             # Check if the current file is a better match for the known types
-            for map in self.mappings:
-                hmapped, missing = comps[map.typ]
+            for map, hm in zip(self.mappings, header_maps):
+                hmapped, missing = hm
                 if map.missing is None or map.missing > missing:
                     log.debug('Better file match for type %s: %s',
                               map, each_file.name)
@@ -89,18 +89,25 @@ class Load:
 
         _bfs(root, update_maps, allowed_suffixes=allowed_suffixes, depth=depth)
 
-    def load_from_mappings(self):
+    def load_from_mappings(self, batch_size=1000):
         """Given a map containing the model fields and some associated data,
         including the file to load, load the files"""
         for maps in self.mappings:
             file, header = maps.file, maps.headerList
+
             with open(file, 'r') as reader:
                 # header
                 reader.readline()
-                for line in reader:
-                    fmap = _to_map(header, line.strip().split(','))
-                    obj = maps.typ(**fmap)
-                    obj.save()
+                while True:
+                    batch = _read_batch(reader, batch_size)
+                    if batch:
+                        mapped = \
+                            [maps.typ(
+                                **_to_map(header, line.strip().split(','))
+                             ) for line in batch]
+                        maps.typ.objects.bulk_create(mapped)
+                    if len(batch) < batch_size:
+                        break
 
     def load_from_directory(self, root, depth=4):
         """Find the files in a given root directory which correspond to the
@@ -110,6 +117,12 @@ class Load:
 
     def write_progress():
         pass
+
+
+def _read_batch(handle, batch_size):
+    "Read lines into a deque"
+    batch = deque([line for line, _ in zip(handle, range(batch_size))])
+    return batch
 
 
 def _map_header_to_model(data_file, mappings):
@@ -122,7 +135,7 @@ def _map_header_to_model(data_file, mappings):
     log.debug('header: %s', header)
     hfields = header.split(',')
 
-    choice = {}
+    choice = []
     for maps in mappings:
         # typ = model type, map = mapping from text header to model
         # fields, fields = set of model fields
@@ -140,7 +153,7 @@ def _map_header_to_model(data_file, mappings):
         log.debug('''header for file %s is missing %d fields
                   for type %s''', data_file.name, missing, typ)
 
-        choice[typ] = (hmapped, missing)
+        choice.append((hmapped, missing))
 
     return choice
 
