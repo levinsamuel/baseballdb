@@ -1,4 +1,3 @@
 import logging
 
-logging.basicConfig()
-logging.getLogger('').setLevel(logging.WARN)
+logging.basicConfig(level=logging.WARN)

@@ -4,7 +4,7 @@ from bbapp.loader import Load, log as loader_log
 import logging
 
 log = logging.getLogger('load_command')
-log.setLevel(logging.INFO)
+# log.setLevel(logging.INFO)
 
 
 class Command(BaseCommand):
@@ -21,6 +21,7 @@ class Command(BaseCommand):
         root = options['root_dir']
         batch_size = options['batch_size']
         verbosity = options['verbosity']
+        log.info('verbosity is %s', verbosity)
         if verbosity > 1:
             log.setLevel(logging.DEBUG)
             loader_log.setLevel(logging.DEBUG)
