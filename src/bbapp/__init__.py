@@ -1,3 +1,6 @@
 import logging
 
-logging.basicConfig(level=logging.WARN)
+log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.WARNING)
+# logging.getLogger().setLevel(logging.WARN)
+

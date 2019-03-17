@@ -1,20 +1,20 @@
-from django.test import SimpleTestCase
-from django.db.models.fields import Field
-from bbapp.loader import Load, Mapping, log as loaderlog
-from bbapp.models import Player, Batting
 import logging
-import inspect
 import pathlib
 
-logging.basicConfig()
-log = logging.getLogger('simple_loader_tests')
+from django.test import SimpleTestCase
+
+from bbapp.loader import Load, log as loaderlog
+from bbapp.models import Player, Batting
+
+log = logging.getLogger(__name__)
+root_level = logging.getLogger().getEffectiveLevel()
 
 
 class SimpleLoaderTest(SimpleTestCase):
 
     def setUp(self):
-        log.setLevel(logging.INFO)
-        loaderlog.setLevel(logging.INFO)
+        log.setLevel(root_level)
+        loaderlog.setLevel(root_level)
 
     def test_label_files(self):
 
@@ -30,7 +30,7 @@ class SimpleLoaderTest(SimpleTestCase):
         )
         log.debug('Labeled files: %s', load)
 
-        playermap = filter(lambda m: m.typ == Player, load.mappings)\
+        playermap = filter(lambda m: m.typ == Player, load.mappings) \
             .__next__()
         self.assertEqual(
             'People.csv', playermap.file.name
@@ -38,7 +38,7 @@ class SimpleLoaderTest(SimpleTestCase):
         self.assertIn('id', playermap.headerList,
                       'Expected player to use local map from playerID to id')
 
-        battingmap = filter(lambda m: m.typ == Batting, load.mappings)\
+        battingmap = filter(lambda m: m.typ == Batting, load.mappings) \
             .__next__()
         self.assertEqual(
             'Batting.csv', battingmap.file.name
@@ -47,7 +47,7 @@ class SimpleLoaderTest(SimpleTestCase):
     def test_get_model_fields(self):
 
         load = Load()
-        player_map = filter(lambda m: m.typ == Player, load.mappings)\
+        player_map = filter(lambda m: m.typ == Player, load.mappings) \
             .__next__()
         player_fields = player_map.fields
         log.debug('player fields: %s', player_fields)
@@ -62,7 +62,7 @@ class SimpleLoaderTest(SimpleTestCase):
                          'Unexpected field in player field list')
 
         # Test batting key
-        batting_map = filter(lambda m: m.typ == Batting, load.mappings)\
+        batting_map = filter(lambda m: m.typ == Batting, load.mappings) \
             .__next__()
         batting_fields = batting_map.fields
         log.debug('batting fields: %s', batting_fields)
@@ -70,3 +70,7 @@ class SimpleLoaderTest(SimpleTestCase):
                       'Expected field to be in batting field list')
         self.assertIn('id', batting_fields,
                       'Expected field to be in batting field list')
+
+    def test_log_levels(self):
+
+        log.info('hi')

@@ -1,10 +1,12 @@
-from bbapp.models import Batting, Fielding, Pitching, Player
-from django.db.models.fields.related import ForeignKey
-from pathlib import Path
-from collections import deque
 import logging
+from collections import deque
+from pathlib import Path
 
-log = logging.getLogger('model_loader')
+from django.db.models.fields.related import ForeignKey
+
+from bbapp.models import Batting, Fielding, Pitching, Player
+
+log = logging.getLogger(__name__)
 
 # Global maps are overridden by type-specific maps
 global_maps = {
@@ -67,7 +69,7 @@ class Load:
         return Load([Mapping(t) for t in type_list])
 
     def find_and_label_files(self, root, depth=4,
-                             allowed_suffixes=['txt', 'csv', 'dat']):
+                             allowed_suffixes=('txt', 'csv', 'dat')):
         """Given a root directory, search all subdirectories for files
         matching the model classes based on their headers"""
 
@@ -119,12 +121,12 @@ class Load:
         self.find_and_label_files(root, depth)
         self.load_from_mappings(batch_size)
 
-    def write_progress():
+    def write_progress(self):
         pass
 
 
 def _read_batch(handle, batch_size):
-    "Read lines into a deque"
+    """Read lines into a deque"""
     # handle has to come second, or else the generator will try to read
     # an extra line before it find that range has run out, and will lose
     # a line
@@ -146,11 +148,11 @@ def _map_header_to_model(data_file, mappings):
     for maps in mappings:
         # typ = model type, map = mapping from text header to model
         # fields, fields = set of model fields
-        typ, map, fields = maps.typ, maps.mapping, maps.fields
+        typ, mapping, fields = maps.typ, maps.mapping, maps.fields
         log.debug('checking type for match: %s', typ)
 
         # map read header to field names in model
-        hmapped = [_map_header_fields(h, map) for h in hfields]
+        hmapped = [_map_header_fields(h, mapping) for h in hfields]
 
         # check how many fields are found in each type
         headerset = set(hmapped)

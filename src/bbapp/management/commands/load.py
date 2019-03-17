@@ -1,10 +1,11 @@
-from django.core.management.base import BaseCommand, CommandError
-from bbapp.models import Player
-from bbapp.loader import Load, log as loader_log
 import logging
 
-log = logging.getLogger('load_command')
-# log.setLevel(logging.INFO)
+from django.core.management.base import BaseCommand
+
+from bbapp.loader import Load
+
+log = logging.getLogger(__name__)
+rl = logging.getLogger()
 
 
 class Command(BaseCommand):
@@ -21,13 +22,10 @@ class Command(BaseCommand):
         root = options['root_dir']
         batch_size = options['batch_size']
         verbosity = options['verbosity']
-        log.info('verbosity is %s', verbosity)
-        if verbosity > 1:
-            log.setLevel(logging.DEBUG)
-            loader_log.setLevel(logging.DEBUG)
-        if verbosity == 1:
-            log.setLevel(logging.INFO)
-            loader_log.setLevel(logging.INFO)
+        if verbosity == 3:
+            rl.setLevel(logging.DEBUG)
+        if verbosity == 2:
+            rl.setLevel(logging.INFO)
         log.debug('read root dir: %s', root)
 
         load = Load()

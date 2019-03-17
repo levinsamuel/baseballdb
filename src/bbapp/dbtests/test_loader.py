@@ -4,7 +4,7 @@ from bbapp.models import Player, Pitching, Batting, Fielding
 from pathlib import Path
 import logging
 
-log = logging.getLogger('test_loader:db')
+log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 
