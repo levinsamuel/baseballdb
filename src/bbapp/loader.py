@@ -90,9 +90,10 @@ class Load:
 
         _bfs(root, update_maps, allowed_suffixes=allowed_suffixes, depth=depth)
 
-    def load_from_mappings(self, batch_size=1000):
-        """Given a map containing the model fields and some associated data,
-        including the file to load, load the files"""
+    def load_from_directory(self, root, depth=4, batch_size=1000):
+        """Find the files in a given root directory which correspond to the
+        expected model fields, and then load those files into the DB"""
+        self.find_and_label_files(root, depth)
         for maps in self.mappings:
             file, header = maps.file, maps.headerList
             log.info('loading type %s from file: %s', maps.typ.__name__,
@@ -114,12 +115,6 @@ class Load:
                                  maps.typ.__name__)
                     if len(batch) < batch_size:
                         break
-
-    def load_from_directory(self, root, depth=4, batch_size=1000):
-        """Find the files in a given root directory which correspond to the
-        expected model fields, and then load those files into the DB"""
-        self.find_and_label_files(root, depth)
-        self.load_from_mappings(batch_size)
 
     def write_progress(self):
         pass
@@ -183,11 +178,13 @@ def _to_map(keys, vals):
             if v is not None and v != ''}
 
 
-def _bfs(root, fileexec, allowed_suffixes=[], depth=4):
+def _bfs(root, fileexec, allowed_suffixes=None, depth=4):
     """Breadth-first search through a directory and execute the passed function
     on each file matching the criteria"""
-    _allowedsfx = {('.' + sfx if not sfx.startswith('.') else sfx)
-                   for sfx in allowed_suffixes}
+    _allowedsfx = allowed_suffixes
+    if _allowedsfx:
+        _allowedsfx = {('.' + sfx if not sfx.startswith('.') else sfx)
+                       for sfx in _allowedsfx}
 
     # BFS through root dir
     fileq = deque([(Path(root), 0)])
@@ -197,7 +194,7 @@ def _bfs(root, fileexec, allowed_suffixes=[], depth=4):
             if chld.is_dir() and lvl < depth:
                 fileq.append((chld, lvl + 1))
             elif chld.is_file() and\
-                    (len(_allowedsfx) == 0 or chld.suffix in _allowedsfx):
+                    (not _allowedsfx or chld.suffix in _allowedsfx):
 
                 # Pass function to execute on each file
                 fileexec(chld)
